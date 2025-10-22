@@ -173,16 +173,69 @@
 
       const nodes = Array.from(nodesMap.values());
 
-      // Update info
-      document.getElementById("info").textContent =
-        `Visualizing ${nodes.length} functions with ${edges.length} calls.`;
+      // Compute hierarchical levels using BFS from root nodes
+      // Root nodes are those that never appear as targets
+      const targetSet = new Set(edges.map(e => e.target));
+      const rootNodes = nodes.filter(n => !targetSet.has(n.id));
 
-      // Create force simulation
-      const simulation = d3.forceSimulation(nodes)
-        .force("link", d3.forceLink(edges).id(d => d.id).distance(100))
-        .force("charge", d3.forceManyBody().strength(-300))
-        .force("center", d3.forceCenter(width / 2, height / 2))
-        .force("collision", d3.forceCollide().radius(30));
+      // Build adjacency list
+      const adjacency = new Map();
+      nodes.forEach(n => adjacency.set(n.id, []));
+      edges.forEach(e => adjacency.get(e.source).push(e.target));
+
+      // Assign levels using BFS
+      const levels = new Map();
+      const queue = [];
+
+      // Initialize roots at level 0
+      rootNodes.forEach(node => {
+        levels.set(node.id, 0);
+        queue.push({ id: node.id, level: 0 });
+      });
+
+      // BFS to assign levels (max level from any path)
+      const visited = new Set();
+      while (queue.length > 0) {
+        const { id, level } = queue.shift();
+
+        if (!visited.has(id)) {
+          visited.add(id);
+
+          const neighbors = adjacency.get(id) || [];
+          neighbors.forEach(targetId => {
+            const newLevel = level + 1;
+            const currentLevel = levels.get(targetId);
+
+            // Update if this path gives a deeper level
+            if (currentLevel === undefined || newLevel > currentLevel) {
+              levels.set(targetId, newLevel);
+              queue.push({ id: targetId, level: newLevel });
+            }
+          });
+        }
+      }
+
+      // Assign level to nodes (nodes in cycles or unreachable get max level + 1)
+      const maxLevel = Math.max(...Array.from(levels.values()), 0);
+      nodes.forEach(node => {
+        node.level = levels.get(node.id) ?? (maxLevel + 1);
+      });
+
+      const numLevels = maxLevel + 2;
+      const levelHeight = Math.max(150, height / numLevels);
+
+      // Update info
+      const rootCount = rootNodes.length;
+      document.getElementById("info").textContent =
+        `Visualizing ${nodes.length} functions with ${edges.length} calls. ${rootCount} root functions across ${numLevels} levels.`;
+
+      // Create force simulation with hierarchical constraints
+      const simulation = d3.forceSimulation(nodeArray)
+        .force("link", d3.forceLink(edges).id(d => d.id).distance(1000))
+        .force("charge", d3.forceManyBody().strength(-500))
+        .force("x", d3.forceX(width / 2).strength(0.05))
+        .force("y", d3.forceY(d => d.level * levelHeight + 50).strength(1))
+        .force("collision", d3.forceCollide().radius(40));
 
       // Clear previous graph
       linkGroup.selectAll("*").remove();
@@ -232,7 +285,7 @@
 
       // Drag functions
       function dragstarted(event, d) {
-        if (!event.active) simulation.alphaTarget(0.3).restart();
+        if (!event.active) simulation.alphaTarget(0.1).restart();
         d.fx = d.x;
         d.fy = d.y;
       }
