@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Call Graph Visualizer</title>
+  <script src="https://unpkg.com/d3@7"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      background-color: #f5f5f5;
+    }
+
+    #controls {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+    }
+
+    #fileInput {
+      margin-right: 10px;
+    }
+
+    #svg-container {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+    }
+
+    svg {
+      display: block;
+      width: 100%;
+      height: calc(100vh - 140px);
+    }
+
+    .node circle {
+      fill: #4CAF50;
+      stroke: #2E7D32;
+      stroke-width: 2px;
+      cursor: pointer;
+    }
+
+    .node:hover circle {
+      fill: #66BB6A;
+      stroke: #1B5E20;
+      stroke-width: 3px;
+    }
+
+    .node text {
+      font-size: 12px;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .link {
+      fill: none;
+      stroke: #999;
+      stroke-width: 2px;
+      marker-end: url(#arrowhead);
+    }
+
+    .link:hover {
+      stroke: #333;
+      stroke-width: 3px;
+    }
+
+    #info {
+      margin-top: 10px;
+      color: #666;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="controls">
+    <h1>Call Graph Visualizer</h1>
+    <input type="file" id="fileInput" accept=".csv" />
+    <div id="info">Upload a CSV file with "source,target" format to visualize the call graph.</div>
+  </div>
+
+  <div id="svg-container">
+    <svg id="graph"></svg>
+  </div>
+
+  <script>
+    // Set up SVG dimensions
+    const svg = d3.select("#graph");
+    const width = svg.node().getBoundingClientRect().width;
+    const height = svg.node().getBoundingClientRect().height;
+
+    // Create arrow marker for directed edges
+    svg.append("defs").append("marker")
+      .attr("id", "arrowhead")
+      .attr("viewBox", "0 -5 10 10")
+      .attr("refX", 12.5)
+      .attr("refY", 0)
+      .attr("markerWidth", 6)
+      .attr("markerHeight", 6)
+      .attr("orient", "auto")
+      .append("path")
+      .attr("d", "M0,-5L10,0L0,5")
+      .attr("fill", "#999");
+
+    // Create container groups
+    const g = svg.append("g");
+    const linkGroup = g.append("g").attr("class", "links");
+    const nodeGroup = g.append("g").attr("class", "nodes");
+
+    // Add zoom behavior
+    const zoom = d3.zoom()
+      .scaleExtent([0.1, 4])
+      .on("zoom", (event) => {
+        g.attr("transform", event.transform);
+      });
+
+    svg.call(zoom);
+
+    // Handle file upload
+    document.getElementById("fileInput").addEventListener("change", function (event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          const csvContent = e.target.result;
+          visualizeCallGraph(csvContent);
+        };
+        reader.readAsText(file);
+      }
+    });
+
+    // Function to visualize the call graph
+    function visualizeCallGraph(csvContent) {
+      // Parse CSV
+      const lines = csvContent.trim().split('\n');
+      const edges = [];
+
+      // Skip header line
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+
+        // Parse CSV line, handling quoted fields
+        const match = line.match(/"([^"]+)","([^"]+)"/);
+        if (match) {
+          edges.push({
+            source: match[1],
+            target: match[2]
+          });
+        }
+      }
+
+      if (edges.length === 0) {
+        document.getElementById("info").textContent = "No valid data found in CSV file.";
+        return;
+      }
+
+      // Extract unique nodes
+      const nodesMap = new Map();
+      edges.forEach(edge => {
+        if (!nodesMap.has(edge.source)) {
+          nodesMap.set(edge.source, { id: edge.source });
+        }
+        if (!nodesMap.has(edge.target)) {
+          nodesMap.set(edge.target, { id: edge.target });
+        }
+      });
+
+      const nodes = Array.from(nodesMap.values());
+
+      // Update info
+      document.getElementById("info").textContent =
+        `Visualizing ${nodes.length} functions with ${edges.length} calls.`;
+
+      // Create force simulation
+      const simulation = d3.forceSimulation(nodes)
+        .force("link", d3.forceLink(edges).id(d => d.id).distance(100))
+        .force("charge", d3.forceManyBody().strength(-300))
+        .force("center", d3.forceCenter(width / 2, height / 2))
+        .force("collision", d3.forceCollide().radius(30));
+
+      // Clear previous graph
+      linkGroup.selectAll("*").remove();
+      nodeGroup.selectAll("*").remove();
+
+      // Draw links
+      const link = linkGroup.selectAll("path")
+        .data(edges)
+        .enter()
+        .append("path")
+        .attr("class", "link");
+
+      // Draw nodes
+      const node = nodeGroup.selectAll("g")
+        .data(nodes)
+        .enter()
+        .append("g")
+        .attr("class", "node")
+        .call(d3.drag()
+          .on("start", dragstarted)
+          .on("drag", dragged)
+          .on("end", dragended));
+
+      node.append("circle")
+        .attr("r", 8);
+
+      node.append("text")
+        .attr("dx", 12)
+        .attr("dy", 4)
+        .text(d => d.id);
+
+      // Add tooltip on hover
+      node.append("title")
+        .text(d => d.id);
+
+      // Update positions on simulation tick
+      simulation.on("tick", () => {
+        link.attr("d", d => {
+          const dx = d.target.x - d.source.x;
+          const dy = d.target.y - d.source.y;
+          const dr = Math.sqrt(dx * dx + dy * dy);
+          return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
+        });
+
+        node.attr("transform", d => `translate(${d.x},${d.y})`);
+      });
+
+      // Drag functions
+      function dragstarted(event, d) {
+        if (!event.active) simulation.alphaTarget(0.3).restart();
+        d.fx = d.x;
+        d.fy = d.y;
+      }
+
+      function dragged(event, d) {
+        d.fx = event.x;
+        d.fy = event.y;
+      }
+
+      function dragended(event, d) {
+        if (!event.active) simulation.alphaTarget(0);
+        d.fx = null;
+        d.fy = null;
+      }
+
+      // Reset zoom
+      svg.transition()
+        .duration(750)
+        .call(zoom.transform, d3.zoomIdentity);
+    }
+  </script>
+</body>
+
+</html>
