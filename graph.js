@@ -260,39 +260,29 @@ function clearFilters() {
 }
 
 function rankNodes(rootNodes, adjacency) {
-  // Assign levels using BFS
   const levels = new Map();
-  const queue = [];
 
-  // Initialize roots at level 0
+  // Perform DFS from each root node (level 0)
   rootNodes.forEach(node => {
-    levels.set(node.id, 0);
-    queue.push({ id: node.id, level: 0 });
+    rankNodes2(node.id, 0, levels, adjacency, new Set());
   });
 
-  // BFS to assign levels (max level from any path)
-  const visited = new Set();
-  while (queue.length > 0) {
-    const { id, level } = queue.shift();
+  return levels;
+}
 
-    if (!visited.has(id)) {
-      visited.add(id);
+function rankNodes2(id, level, levels, adjacency, visited) {
+  if (visited.has(id)) return;
 
-      const neighbors = adjacency.get(id) || [];
-      neighbors.forEach(targetId => {
-        const newLevel = level + 1;
-        const currentLevel = levels.get(targetId);
+  const newVisited = new Set(visited.values());
+  newVisited.add(id);
 
-        // Update if this path gives a deeper level
-        if (currentLevel === undefined || newLevel > currentLevel) {
-          levels.set(targetId, newLevel);
-          queue.push({ id: targetId, level: newLevel });
-        }
-      });
-    }
+  const currentLevel = levels.get(id);
+  if (currentLevel === undefined || currentLevel < level) {
+    levels.set(id, level);
   }
 
-  return levels;
+  const neighbors = adjacency.get(id) || [];
+  neighbors.forEach(targetId => rankNodes2(targetId, level + 1, levels, adjacency, newVisited));
 }
 
 // Function to visualize the call graph
