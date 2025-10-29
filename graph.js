@@ -167,8 +167,6 @@ function getTransitiveCallees(startNode, edges) {
     });
   }
 
-  /* debugger; */
-
   return callees;
 }
 
