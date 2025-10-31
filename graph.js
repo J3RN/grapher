@@ -18,6 +18,7 @@ svg.append("defs").append("marker")
 
 // Create container groups
 const g = svg.append("g");
+const moduleGroup = g.append("g").attr("class", "modules");
 const linkGroup = g.append("g").attr("class", "links");
 const nodeGroup = g.append("g").attr("class", "nodes");
 
@@ -46,8 +47,8 @@ document.getElementById("fileInput").addEventListener("change", function (event)
   if (file) {
     const reader = new FileReader();
     reader.onload = function (e) {
-      const csvContent = e.target.result;
-      loadGraphData(csvContent);
+      const jsonContent = e.target.result;
+      loadGraphData(jsonContent);
     };
     reader.readAsText(file);
   }
@@ -132,58 +133,79 @@ function initializeFilters(nodes) {
   });
 }
 
-// Function to load and parse CSV data
-function loadGraphData(csvContent) {
-  // Parse CSV
-  const lines = csvContent.trim().split('\n');
-  allNodesMap = new Map();
-  const edges = [];
+// Helper function to format node identifier
+function formatNodeId(node) {
+  // Concatenate module parts with function using periods
+  // e.g., {"module": ["Foo", "Bar"], "function": "asdf/2"} -> "Foo.Bar.asdf/2"
+  const modulePath = node.module.join('.');
+  return `${modulePath}.${node.function}`;
+}
 
-  // Skip header line
-  for (let i = 1; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line) continue;
+// Helper function to create node key for comparison
+function getNodeKey(node) {
+  // Create a unique key for the node based on module and function
+  return JSON.stringify({ module: node.module, function: node.function });
+}
 
-    // Parse CSV line, handling quoted fields
-    const match = line.match(/"([^"]+)","([^"]+)"/);
-    if (match) {
-      let sourceNode, targetNode;
+// Function to load and parse JSON data
+function loadGraphData(jsonContent) {
+  try {
+    const data = JSON.parse(jsonContent);
 
-      if (allNodesMap.has(match[1])) {
-        sourceNode = allNodesMap.get(match[1]);
-      } else {
-        sourceNode = { id: match[1] };
-        allNodesMap.set(match[1], sourceNode);
-      }
-
-      if (allNodesMap.has(match[2])) {
-        targetNode = allNodesMap.get(match[2]);
-      } else {
-        targetNode = { id: match[2] };
-        allNodesMap.set(match[2], targetNode);
-      }
-
-      edges.push({
-        source: sourceNode,
-        target: targetNode
-      });
+    if (!data.nodes || !data.edges) {
+      document.getElementById("info").textContent = "Invalid JSON format. Expected 'nodes' and 'edges' properties.";
+      return;
     }
+
+    allNodesMap = new Map();
+    const edges = [];
+
+    // Process nodes - create formatted versions with IDs
+    data.nodes.forEach(node => {
+      const nodeKey = getNodeKey(node);
+      const formattedNode = {
+        id: formatNodeId(node),
+        module: node.module,
+        function: node.function,
+        originalKey: nodeKey
+      };
+      allNodesMap.set(formattedNode.id, formattedNode);
+    });
+
+    // Process edges
+    data.edges.forEach(edge => {
+      const sourceId = formatNodeId(edge.source);
+      const targetId = formatNodeId(edge.target);
+
+      const sourceNode = allNodesMap.get(sourceId);
+      const targetNode = allNodesMap.get(targetId);
+
+      if (sourceNode && targetNode) {
+        edges.push({
+          source: sourceNode,
+          target: targetNode
+        });
+      }
+    });
+
+    if (edges.length === 0) {
+      document.getElementById("info").textContent = "No valid edges found in JSON file.";
+      return;
+    }
+
+    // Store original data
+    originalEdges = edges;
+    originalNodes = Array.from(allNodesMap.values());
+
+    // Initialize the filter dropdowns with all nodes
+    initializeFilters(originalNodes);
+
+    // Initial visualization with no filters
+    clearFilters();
+  } catch (error) {
+    document.getElementById("info").textContent = `Error parsing JSON: ${error.message}`;
+    console.error("JSON parsing error:", error);
   }
-
-  if (edges.length === 0) {
-    document.getElementById("info").textContent = "No valid data found in CSV file.";
-    return;
-  }
-
-  // Store original data
-  originalEdges = edges;
-  originalNodes = Array.from(allNodesMap.values());
-
-  // Initialize the filter dropdowns with all nodes
-  initializeFilters(originalNodes);
-
-  // Initial visualization with no filters
-  clearFilters();
 }
 
 // Function to get all transitive callees of a node (forward traversal)
