@@ -135,11 +135,16 @@
         <select id="sourceFilter" multiple placeholder="Filter to callees of these functions..."></select>
         <button onclick="applyFilters()">Apply</button>
       </div>
-      <div>
+      <div style="margin-bottom: 10px;">
         <label for="sinkFilter">Sink:</label>
         <select id="sinkFilter" multiple placeholder="Filter to callers of these functions..."></select>
         <button onclick="applyFilters()">Apply</button>
         <button class="clear" onclick="clearFilters()">Clear Filters</button>
+      </div>
+      <div>
+        <label for="excludeFilter">Modules:</label>
+        <select id="excludeFilter" multiple placeholder="Show only nodes from these modules..."></select>
+        <button onclick="applyFilters()">Apply</button>
       </div>
     </div>
     <div id="info">Upload a CSV file with "source,target" format to visualize the call graph.</div>

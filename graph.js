@@ -38,6 +38,7 @@ let allNodesMap = new Map();
 // Initialize Tom Select instances
 let sourceSelect = null;
 let sinkSelect = null;
+let moduleSelect = null;
 
 // Handle file upload
 document.getElementById("fileInput").addEventListener("change", function (event) {
@@ -53,6 +54,14 @@ document.getElementById("fileInput").addEventListener("change", function (event)
 });
 
 // Function to initialize Tom Select for filters
+function getModuleFromId(id) {
+  // Module is everything up to the last '.'
+  const lastDot = id.lastIndexOf('.');
+  if (lastDot === -1) return null; // No module part
+  return id.substring(0, lastDot);
+}
+
+// Function to initialize Tom Select for filters
 function initializeFilters(nodes) {
   // Destroy existing instances if they exist
   if (sourceSelect) {
@@ -61,10 +70,21 @@ function initializeFilters(nodes) {
   if (sinkSelect) {
     sinkSelect.destroy();
   }
+  if (moduleSelect) {
+    moduleSelect.destroy();
+  }
 
   // Sort nodes alphabetically for easier searching
   const sortedNodes = nodes.slice().sort((a, b) => a.id.localeCompare(b.id));
   const options = sortedNodes.map(n => ({ value: n.id, text: n.id }));
+
+  // Build unique module list for moduleSelect
+  const moduleSet = new Set();
+  sortedNodes.forEach(n => {
+    const mod = getModuleFromId(n.id);
+    if (mod) moduleSet.add(mod);
+  });
+  const moduleOptions = Array.from(moduleSet).sort().map(m => ({ value: m, text: m }));
 
   // Initialize source filter
   sourceSelect = new TomSelect('#sourceFilter', {
@@ -90,6 +110,21 @@ function initializeFilters(nodes) {
     searchField: 'text',
     options: options,
     placeholder: 'Filter to callers of these functions...',
+    onChange: function() {
+      // Auto-apply filters when selection changes
+      applyFilters();
+    }
+  });
+
+  // Initialize exclude filter
+  moduleSelect = new TomSelect('#excludeFilter', {
+    plugins: ['remove_button'],
+    maxItems: null,
+    valueField: 'value',
+    labelField: 'text',
+    searchField: 'text',
+    options: moduleOptions,
+    placeholder: 'Show only nodes from these modules...',
     onChange: function() {
       // Auto-apply filters when selection changes
       applyFilters();
@@ -191,15 +226,16 @@ function getTransitiveCallers(startNode, edges) {
 
 // Apply source and sink filters
 function applyFilters() {
-  if (!sourceSelect || !sinkSelect) {
+  if (!sourceSelect || !sinkSelect || !moduleSelect) {
     return; // Selects not initialized yet
   }
 
   const sourceFilters = sourceSelect.getValue();
   const sinkFilters = sinkSelect.getValue();
+  const moduleFilters = moduleSelect.getValue();
 
-  if (sourceFilters.length === 0 && sinkFilters.length === 0) {
-    visualizeCallGraph(originalNodes, originalEdges);
+  if (moduleFilters.length === 0) {
+    visualizeCallGraph([], []);
     return;
   }
 
@@ -239,6 +275,15 @@ function applyFilters() {
     filteredNodes = new Set([...filteredNodes].filter(n => allCallers.has(n)));
   }
 
+  // Apply module include filters (keep only nodes belonging to selected modules)
+  const includedModules = new Set(moduleFilters);
+  filteredNodes = new Set(
+    [...filteredNodes].filter(id => {
+      const mod = getModuleFromId(id);
+      return mod && includedModules.has(mod);
+    })
+  );
+
   // Filter nodes and edges
   const nodes = originalNodes.filter(n => filteredNodes.has(n.id));
   const edges = originalEdges.filter(e =>
@@ -256,7 +301,10 @@ function clearFilters() {
   if (sinkSelect) {
     sinkSelect.clear();
   }
-  visualizeCallGraph(originalNodes, originalEdges);
+  if (moduleSelect) {
+    moduleSelect.clear();
+  }
+  visualizeCallGraph([], []);
 }
 
 function rankNodes(rootNodes, adjacency) {
@@ -320,8 +368,9 @@ function visualizeCallGraph(nodes, edges) {
   const rootCount = rootNodes.length;
   const sourceFilters = sourceSelect ? sourceSelect.getValue() : [];
   const sinkFilters = sinkSelect ? sinkSelect.getValue() : [];
+  const moduleFilters = moduleSelect ? moduleSelect.getValue() : [];
   let filterText = "";
-  if (sourceFilters.length > 0 || sinkFilters.length > 0) {
+  if (sourceFilters.length > 0 || sinkFilters.length > 0 || moduleFilters.length > 0) {
     filterText = " (filtered";
     if (sourceFilters.length > 0) {
       filterText += ` from ${sourceFilters.length} source${sourceFilters.length > 1 ? 's' : ''}`;
@@ -329,6 +378,10 @@ function visualizeCallGraph(nodes, edges) {
     if (sinkFilters.length > 0) {
       if (sourceFilters.length > 0) filterText += " and";
       filterText += ` to ${sinkFilters.length} sink${sinkFilters.length > 1 ? 's' : ''}`;
+    }
+    if (moduleFilters.length > 0) {
+      if (sourceFilters.length > 0 || sinkFilters.length > 0) filterText += " and";
+      filterText += ` in ${moduleFilters.length} module${moduleFilters.length > 1 ? 's' : ''}`;
     }
     filterText += ")";
   }
