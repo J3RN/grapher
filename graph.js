@@ -36,10 +36,13 @@ let originalEdges = [];
 let originalNodes = [];
 let allNodesMap = new Map();
 
-// Initialize Tom Select instances
-let sourceSelect = null;
-let sinkSelect = null;
-let moduleSelect = null;
+let sourceSelect = document.getElementById('sourceFilter');
+let sinkSelect = document.getElementById('sinkFilter');
+let moduleSelect = document.getElementById('moduleFilter');
+
+sourceSelect.addEventListener('change', applyFilters);
+sinkSelect.addEventListener('change', applyFilters);
+moduleSelect.addEventListener('change', applyFilters);
 
 // Handle file upload
 document.getElementById("fileInput").addEventListener("change", function (event) {
@@ -54,7 +57,7 @@ document.getElementById("fileInput").addEventListener("change", function (event)
   }
 });
 
-// Function to initialize Tom Select for filters
+// Extract module from full Id (module + function)
 function getModuleFromId(id) {
   // Module is everything up to the last '.'
   const lastDot = id.lastIndexOf('.');
@@ -62,19 +65,8 @@ function getModuleFromId(id) {
   return id.substring(0, lastDot);
 }
 
-// Function to initialize Tom Select for filters
+// Initialize filter selects
 function initializeFilters(nodes) {
-  // Destroy existing instances if they exist
-  if (sourceSelect) {
-    sourceSelect.destroy();
-  }
-  if (sinkSelect) {
-    sinkSelect.destroy();
-  }
-  if (moduleSelect) {
-    moduleSelect.destroy();
-  }
-
   // Sort nodes alphabetically for easier searching
   const sortedNodes = nodes.slice().sort((a, b) => a.id.localeCompare(b.id));
   const options = sortedNodes.map(n => ({ value: n.id, text: n.id }));
@@ -87,50 +79,10 @@ function initializeFilters(nodes) {
   });
   const moduleOptions = Array.from(moduleSet).sort().map(m => ({ value: m, text: m }));
 
-  // Initialize source filter
-  sourceSelect = new TomSelect('#sourceFilter', {
-    plugins: ['remove_button'],
-    maxItems: null,
-    valueField: 'value',
-    labelField: 'text',
-    searchField: 'text',
-    options: options,
-    placeholder: 'Filter to callees of these functions...',
-    onChange: function() {
-      // Auto-apply filters when selection changes
-      applyFilters();
-    }
-  });
-
-  // Initialize sink filter
-  sinkSelect = new TomSelect('#sinkFilter', {
-    plugins: ['remove_button'],
-    maxItems: null,
-    valueField: 'value',
-    labelField: 'text',
-    searchField: 'text',
-    options: options,
-    placeholder: 'Filter to callers of these functions...',
-    onChange: function() {
-      // Auto-apply filters when selection changes
-      applyFilters();
-    }
-  });
-
-  // Initialize exclude filter
-  moduleSelect = new TomSelect('#excludeFilter', {
-    plugins: ['remove_button'],
-    maxItems: null,
-    valueField: 'value',
-    labelField: 'text',
-    searchField: 'text',
-    options: moduleOptions,
-    placeholder: 'Show only nodes from these modules...',
-    onChange: function() {
-      // Auto-apply filters when selection changes
-      applyFilters();
-    }
-  });
+  // Initialize source and sink filters
+  populateSelect(sourceSelect, options);
+  populateSelect(sinkSelect, options);
+  populateSelect(moduleSelect, moduleOptions);
 }
 
 // Helper function to format node identifier
@@ -246,15 +198,20 @@ function getTransitiveCallers(startNode, edges) {
   return callers;
 }
 
+function populateSelect(select, options) {
+  select.innerHtml = '';
+  options.forEach(({text, value}) => select.appendChild(new Option(text, value)));
+}
+
+function selectedOptionValues(select) {
+  return [...select.selectedOptions].map(o => o.value);
+}
+
 // Apply source and sink filters
 function applyFilters() {
-  if (!sourceSelect || !sinkSelect || !moduleSelect) {
-    return; // Selects not initialized yet
-  }
-
-  const sourceFilters = sourceSelect.getValue();
-  const sinkFilters = sinkSelect.getValue();
-  const moduleFilters = moduleSelect.getValue();
+  const sourceFilters = selectedOptionValues(sourceSelect);
+  const sinkFilters = selectedOptionValues(sinkSelect);
+  const moduleFilters = selectedOptionValues(moduleSelect);
 
   if (moduleFilters.length === 0) {
     visualizeCallGraph([], []);
@@ -317,15 +274,11 @@ function applyFilters() {
 
 // Clear all filters
 function clearFilters() {
-  if (sourceSelect) {
-    sourceSelect.clear();
-  }
-  if (sinkSelect) {
-    sinkSelect.clear();
-  }
-  if (moduleSelect) {
-    moduleSelect.clear();
-  }
+  initializeFilters(originalNodes);
+  sourceSelect.selectedIndex = -1;
+  sinkSelect.selectedIndex = -1;
+  moduleSelect.selectedIndex = -1;
+
   visualizeCallGraph([], []);
 }
 
@@ -388,9 +341,9 @@ function visualizeCallGraph(nodes, edges) {
 
   // Update info
   const rootCount = rootNodes.length;
-  const sourceFilters = sourceSelect ? sourceSelect.getValue() : [];
-  const sinkFilters = sinkSelect ? sinkSelect.getValue() : [];
-  const moduleFilters = moduleSelect ? moduleSelect.getValue() : [];
+  const sourceFilters = sourceSelect ? selectedOptionValues(sourceSelect) : [];
+  const sinkFilters = sinkSelect ? selectedOptionValues(sinkSelect) : [];
+  const moduleFilters = moduleSelect ? selectedOptionValues(moduleSelect) : [];
   let filterText = "";
   if (sourceFilters.length > 0 || sinkFilters.length > 0 || moduleFilters.length > 0) {
     filterText = " (filtered";

@@ -6,8 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Call Graph Visualizer</title>
   <script src="https://unpkg.com/d3@7"></script>
-  <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
   <style>
     body {
       margin: 0;
@@ -149,20 +147,19 @@
     <input type="file" id="fileInput" accept=".json" />
     <div class="filter-controls">
       <div style="margin-bottom: 10px;">
-        <label for="sourceFilter">Source:</label>
+        <label for="sourceFilter">Source</label><br />
         <select id="sourceFilter" multiple placeholder="Filter to callees of these functions..."></select>
-        <button onclick="applyFilters()">Apply</button>
       </div>
       <div style="margin-bottom: 10px;">
-        <label for="sinkFilter">Sink:</label>
+        <label for="sinkFilter">Sink</label><br />
         <select id="sinkFilter" multiple placeholder="Filter to callers of these functions..."></select>
-        <button onclick="applyFilters()">Apply</button>
-        <button class="clear" onclick="clearFilters()">Clear Filters</button>
+      </div>
+      <div style="margin-bottom: 10px;">
+        <label for="moduleFilter">Modules</label><br />
+        <select id="moduleFilter" multiple placeholder="Show only nodes from these modules..."></select>
       </div>
       <div>
-        <label for="excludeFilter">Modules:</label>
-        <select id="excludeFilter" multiple placeholder="Show only nodes from these modules..."></select>
-        <button onclick="applyFilters()">Apply</button>
+          <button class="clear" onclick="clearFilters()">Clear Filters</button>
       </div>
     </div>
     <div id="info">Upload a JSON file with nodes and edges to visualize the call graph.</div>
