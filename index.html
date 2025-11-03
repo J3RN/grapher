@@ -7,6 +7,10 @@
   <title>Call Graph Visualizer</title>
   <script src="https://unpkg.com/d3@7"></script>
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
       padding: 20px;
@@ -32,6 +36,9 @@
       background-color: #f9f9f9;
       border-radius: 4px;
       border: 1px solid #e0e0e0;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 15px;
     }
 
     .filter-controls label {
@@ -41,8 +48,8 @@
     }
 
     .filter-controls select {
-      width: 400px;
-      margin-right: 10px;
+      height: 150px;
+      width: 100%;
     }
 
     .filter-controls .ts-wrapper {
@@ -143,18 +150,18 @@
 
 <body>
   <div id="controls">
-    <h1>Call Graph Visualizer</h1>
+    <h1 style="margin-top: 0">Call Graph Visualizer</h1>
     <input type="file" id="fileInput" accept=".json" />
     <div class="filter-controls">
-      <div style="margin-bottom: 10px;">
+      <div>
         <label for="sourceFilter">Source</label><br />
         <select id="sourceFilter" multiple placeholder="Filter to callees of these functions..."></select>
       </div>
-      <div style="margin-bottom: 10px;">
+      <div>
         <label for="sinkFilter">Sink</label><br />
         <select id="sinkFilter" multiple placeholder="Filter to callers of these functions..."></select>
       </div>
-      <div style="margin-bottom: 10px;">
+      <div>
         <label for="moduleFilter">Modules</label><br />
         <select id="moduleFilter" multiple placeholder="Show only nodes from these modules..."></select>
       </div>
