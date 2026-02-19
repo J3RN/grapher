@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Call Graph Visualizer</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      background-color: #f5f5f5;
+    }
+
+    #controls {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+    }
+
+    #fileInput {
+      margin-right: 10px;
+    }
+
+    .filter-controls {
+      margin-top: 15px;
+      padding: 15px;
+      background-color: #f9f9f9;
+      border-radius: 4px;
+      border: 1px solid #e0e0e0;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 15px;
+    }
+
+    .filter-controls label {
+      display: inline-block;
+      margin-right: 10px;
+      font-weight: bold;
+    }
+
+    .filter-controls select {
+      height: 150px;
+      width: 100%;
+    }
+
+    .filter-controls .ts-wrapper {
+      width: 400px !important;
+      margin-right: 10px;
+    }
+
+    .filter-controls button {
+      padding: 6px 12px;
+      background-color: #2196F3;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 5px;
+    }
+
+    .filter-controls button:hover {
+      background-color: #1976D2;
+    }
+
+    .filter-controls button.clear {
+      background-color: #757575;
+    }
+
+    .filter-controls button.clear:hover {
+      background-color: #616161;
+    }
+
+    #info {
+      margin-top: 10px;
+      color: #666;
+    }
+
+    #graph {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      height: calc(100vh - 140px);
+      overflow: hidden;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="controls">
+    <h1 style="margin-top: 0">Call Graph Visualizer</h1>
+    <input type="file" id="fileInput" accept=".json" />
+    <div class="filter-controls">
+      <div>
+        <label for="sourceFilter">Source</label><br />
+        <select id="sourceFilter" multiple placeholder="Filter to callees of these functions..."></select>
+      </div>
+      <div>
+        <label for="sinkFilter">Sink</label><br />
+        <select id="sinkFilter" multiple placeholder="Filter to callers of these functions..."></select>
+      </div>
+      <div>
+        <label for="moduleFilter">Modules</label><br />
+        <select id="moduleFilter" multiple placeholder="Show only nodes from these modules..."></select>
+      </div>
+      <div>
+        <button class="clear" onclick="clearFilters()">Clear Filters</button>
+      </div>
+    </div>
+    <div id="info">Upload a JSON file with nodes and edges to visualize the call graph.</div>
+  </div>
+
+  <div id="graph"></div>
+
+  <script src="https://unpkg.com/cytoscape@3.26.0/dist/cytoscape.min.js"></script>
+  <script src="https://unpkg.com/dagre@0.8.5/dist/dagre.min.js"></script>
+  <script src="https://unpkg.com/cytoscape-dagre@2.5.0/cytoscape-dagre.js"></script>
+  <script src="cytoscape.js"></script>
+</body>
+
+</html>
