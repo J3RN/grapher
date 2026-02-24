@@ -298,9 +298,7 @@ function applyFilters() {
 
   let visibleFunctions = new Set(functionIds);
 
-  if (selectedModules.size > 0) {
-    visibleFunctions = filterFunctionsByModules(visibleFunctions, selectedModules);
-  }
+  visibleFunctions = filterFunctionsByModules(visibleFunctions, selectedModules);
 
   if (selectedSources.size > 0) {
     visibleFunctions = filterFunctionsBySources(visibleFunctions, selectedSources);
