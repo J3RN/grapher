@@ -77,8 +77,9 @@ function initializeCytoscape() {
         style: {
           'background-opacity': 0.2,
           'padding': '12px',
-          // 'text-valign': 'top',
-          // 'text-halign': 'left'
+          'text-valign': 'top',
+          'text-halign': 'center',
+          'text-margin-y': -10
         }
       },
       {
