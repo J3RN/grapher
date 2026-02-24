@@ -183,7 +183,7 @@ function loadGraphData(jsonText) {
     nodes.forEach((node) => nodeDataById.set(node.data.id, node));
 
     edgeData = edges.filter(
-      (edge) => nodeDataById.has(edge.source) && nodeDataById.has(edge.target)
+      (edge) => nodeDataById.has(edge.data.source) && nodeDataById.has(edge.data.target)
     );
 
     functionIds = nodeIdsInOrder.filter(
@@ -216,8 +216,8 @@ function buildAdjacency() {
   });
 
   edgeData.forEach((edge) => {
-    adjacency.get(edge.source)?.add(edge.target);
-    reverseAdjacency.get(edge.target)?.add(edge.source);
+    adjacency.get(edge.data.source)?.add(edge.data.target);
+    reverseAdjacency.get(edge.data.target)?.add(edge.data.source);
   });
 }
 
@@ -338,12 +338,12 @@ function applyFilters() {
 function filterFunctionsBySources(functionSet, sourceSet) {
     const reachableFromSources = new Set();
     sourceSet.forEach((id) => {
-        if (nodeDataById.get(id)?.type !== 'function') {
+        if (nodeDataById.get(id)?.data.type !== 'function') {
             return;
         }
         const reachable = traverseGraph(id, adjacency);
         reachable.forEach((nodeId) => {
-            if (nodeDataById.get(nodeId)?.type === 'function') {
+            if (nodeDataById.get(nodeId)?.data.type === 'function') {
                 reachableFromSources.add(nodeId);
             }
         });
@@ -354,12 +354,12 @@ function filterFunctionsBySources(functionSet, sourceSet) {
 function filterFunctionsBySinks(functionSet, sinkSet) {
     const callersOfSinks = new Set();
     sinkSet.forEach((id) => {
-        if (nodeDataById.get(id)?.type !== 'function') {
+        if (nodeDataById.get(id)?.data.type !== 'function') {
             return;
         }
         const callers = traverseGraph(id, reverseAdjacency);
         callers.forEach((nodeId) => {
-            if (nodeDataById.get(nodeId)?.type === 'function') {
+            if (nodeDataById.get(nodeId)?.data.type === 'function') {
                 callersOfSinks.add(nodeId);
             }
         });
@@ -421,15 +421,15 @@ function renderGraph(nodeIdSet, visibleFunctions, selectedSources, selectedSinks
 
   const nodeElements = [];
   nodeIdSet.forEach((id) => {
-    const data = nodeDataById.get(id);
-    if (data) {
-      nodeElements.push({ data: { ...data } });
+    const node = nodeDataById.get(id);
+    if (node) {
+      nodeElements.push({ data: { ...node.data } });
     }
   });
 
   const edgeElements = edgeData
-    .filter((edge) => nodeIdSet.has(edge.source) && nodeIdSet.has(edge.target))
-    .map((edge) => ({ data: { ...edge } }));
+    .filter((edge) => nodeIdSet.has(edge.data.source) && nodeIdSet.has(edge.data.target))
+    .map((edge) => ({ data: { ...edge.data } }));
 
   cy.startBatch();
   cy.elements().remove();
@@ -451,7 +451,7 @@ function renderGraph(nodeIdSet, visibleFunctions, selectedSources, selectedSinks
   cy.fit(cy.nodes(), 50);
 
   const moduleCount = [...nodeIdSet].filter(
-    (id) => nodeDataById.get(id)?.type === 'module'
+    (id) => nodeDataById.get(id)?.data.type === 'module'
   ).length;
   const functionCount = visibleFunctions.size;
   const callCount = edgeElements.length;
