@@ -315,15 +315,6 @@ function applyFilters() {
     ancestors.forEach((ancestorId) => nodesToRender.add(ancestorId));
   });
 
-  selectedModules.forEach((moduleId) => {
-    if (!nodeDataById.has(moduleId)) {
-      return;
-    }
-    nodesToRender.add(moduleId);
-    const ancestors = ancestorsById.get(moduleId) || [];
-    ancestors.forEach((ancestorId) => nodesToRender.add(ancestorId));
-  });
-
   if (nodesToRender.size === 0) {
     clearCytoscape();
     setInfoMessage('No functions match the current filters.');
