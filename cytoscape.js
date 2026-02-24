@@ -303,35 +303,11 @@ function applyFilters() {
   }
 
   if (selectedSources.size > 0) {
-    const reachableFromSources = new Set();
-    selectedSources.forEach((id) => {
-      if (nodeDataById.get(id)?.type !== 'function') {
-        return;
-      }
-      const reachable = traverseGraph(id, adjacency);
-      reachable.forEach((nodeId) => {
-        if (nodeDataById.get(nodeId)?.type === 'function') {
-          reachableFromSources.add(nodeId);
-        }
-      });
-    });
-    visibleFunctions = intersectSets(visibleFunctions, reachableFromSources);
+    visibleFunctions = filterFunctionsBySources(visibleFunctions, selectedSources);
   }
 
   if (selectedSinks.size > 0) {
-    const callersOfSinks = new Set();
-    selectedSinks.forEach((id) => {
-      if (nodeDataById.get(id)?.type !== 'function') {
-        return;
-      }
-      const callers = traverseGraph(id, reverseAdjacency);
-      callers.forEach((nodeId) => {
-        if (nodeDataById.get(nodeId)?.type === 'function') {
-          callersOfSinks.add(nodeId);
-        }
-      });
-    });
-    visibleFunctions = intersectSets(visibleFunctions, callersOfSinks);
+    visibleFunctions = filterFunctionsBySinks(visibleFunctions, selectedSinks);
   }
 
   const nodesToRender = new Set();
@@ -357,6 +333,38 @@ function applyFilters() {
   }
 
   renderGraph(nodesToRender, visibleFunctions, selectedSources, selectedSinks, selectedModules);
+}
+
+function filterFunctionsBySources(functionSet, sourceSet) {
+    const reachableFromSources = new Set();
+    sourceSet.forEach((id) => {
+        if (nodeDataById.get(id)?.type !== 'function') {
+            return;
+        }
+        const reachable = traverseGraph(id, adjacency);
+        reachable.forEach((nodeId) => {
+            if (nodeDataById.get(nodeId)?.type === 'function') {
+                reachableFromSources.add(nodeId);
+            }
+        });
+    });
+    return intersectSets(functionSet, reachableFromSources);
+}
+
+function filterFunctionsBySinks(functionSet, sinkSet) {
+    const callersOfSinks = new Set();
+    sinkSet.forEach((id) => {
+        if (nodeDataById.get(id)?.type !== 'function') {
+            return;
+        }
+        const callers = traverseGraph(id, reverseAdjacency);
+        callers.forEach((nodeId) => {
+            if (nodeDataById.get(nodeId)?.type === 'function') {
+                callersOfSinks.add(nodeId);
+            }
+        });
+    });
+    return intersectSets(functionSet, callersOfSinks);
 }
 
 function filterFunctionsByModules(functionSet, selectedModules) {
