@@ -31,52 +31,77 @@
     }
 
     .filter-controls {
-      margin-top: 15px;
-      padding: 15px;
-      background-color: #f9f9f9;
-      border-radius: 4px;
-      border: 1px solid #e0e0e0;
+      margin-top: 16px;
+      padding: 16px;
+      background: #fafbfc;
+      border-radius: 6px;
+      border: 1px solid #dfe3e8;
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
-      gap: 15px;
+      gap: 16px;
+    }
+
+    .filter-column {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .filter-header {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 6px;
+      min-height: 22px;
     }
 
     .filter-controls label {
-      display: inline-block;
-      margin-right: 10px;
-      font-weight: bold;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #4a5568;
     }
 
     .filter-controls select {
-      height: 150px;
+      flex: 1;
+      min-height: 150px;
       width: 100%;
+      border: 1px solid #d0d5dd;
+      border-radius: 4px;
+      padding: 4px;
+      font-size: 12px;
+      font-family: inherit;
+      background: white;
     }
 
-    .filter-controls .ts-wrapper {
-      width: 400px !important;
-      margin-right: 10px;
+    .filter-controls select:focus {
+      outline: none;
+      border-color: #4CAF50;
+      box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.15);
     }
 
     .filter-controls button {
-      padding: 6px 12px;
-      background-color: #2196F3;
-      color: white;
-      border: none;
-      border-radius: 4px;
+      padding: 3px 10px;
+      font-size: 11px;
+      font-family: inherit;
+      border: 1px solid #d0d5dd;
+      border-radius: 3px;
       cursor: pointer;
-      margin-right: 5px;
+      background: white;
+      color: #4a5568;
+      transition: background 0.15s, border-color 0.15s;
     }
 
     .filter-controls button:hover {
-      background-color: #1976D2;
+      background: #f0f2f5;
+      border-color: #b0b8c4;
     }
 
-    .filter-controls button.clear {
-      background-color: #757575;
-    }
-
-    .filter-controls button.clear:hover {
-      background-color: #616161;
+    .filter-actions {
+      grid-column: 1 / -1;
+      display: flex;
+      justify-content: flex-end;
+      margin-top: -4px;
     }
 
     #svg-container {
@@ -154,21 +179,27 @@
     <h1 style="margin-top: 0">Call Graph Visualizer</h1>
     <input type="file" id="fileInput" accept=".json" />
     <div class="filter-controls">
-      <div>
-        <label for="sourceFilter">Source</label><br />
+      <div class="filter-column">
+        <div class="filter-header">
+          <label for="sourceFilter">Source</label>
+        </div>
         <select id="sourceFilter" multiple placeholder="Filter to callees of these functions..."></select>
       </div>
-      <div>
-        <label for="sinkFilter">Sink</label><br />
+      <div class="filter-column">
+        <div class="filter-header">
+          <label for="sinkFilter">Sink</label>
+        </div>
         <select id="sinkFilter" multiple placeholder="Filter to callers of these functions..."></select>
       </div>
-      <div>
-        <label for="moduleFilter">Modules</label>
-        <button onclick="selectAllModules()">Select All</button><br />
+      <div class="filter-column">
+        <div class="filter-header">
+          <label for="moduleFilter">Modules</label>
+          <button onclick="selectAllModules()">Select All</button>
+        </div>
         <select id="moduleFilter" multiple placeholder="Show only nodes from these modules..."></select>
       </div>
-      <div>
-          <button class="clear" onclick="clearFilters()">Clear Filters</button>
+      <div class="filter-actions">
+        <button class="clear" onclick="clearFilters()">Clear Filters</button>
       </div>
     </div>
     <div id="info">Upload a JSON file with nodes and edges to visualize the call graph.</div>
