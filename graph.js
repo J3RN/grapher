@@ -7,7 +7,7 @@ const height = svg.node().getBoundingClientRect().height;
 svg.append("defs").append("marker")
   .attr("id", "arrowhead")
   .attr("viewBox", "0 -5 10 10")
-  .attr("refX", 12.5)
+  .attr("refX", 10)
   .attr("refY", 0)
   .attr("markerWidth", 6)
   .attr("markerHeight", 6)
@@ -308,6 +308,15 @@ function rankNodes2(id, level, levels, adjacency, visited) {
   neighbors.forEach(targetId => rankNodes2(targetId, level + 1, levels, adjacency, newVisited));
 }
 
+// Find where a line from (cx, cy) in direction (dx, dy) intersects a rectangle boundary
+function rectEdgePoint(cx, cy, hw, hh, dx, dy) {
+  if (dx === 0 && dy === 0) return { x: cx, y: cy };
+  let t = Infinity;
+  if (dx !== 0) t = Math.min(t, hw / Math.abs(dx));
+  if (dy !== 0) t = Math.min(t, hh / Math.abs(dy));
+  return { x: cx + t * dx, y: cy + t * dy };
+}
+
 // Function to visualize the call graph
 function visualizeCallGraph(nodes, edges) {
   if (!nodes || nodes.length === 0) {
@@ -371,6 +380,11 @@ function visualizeCallGraph(nodes, edges) {
   const simulation = d3.forceSimulation(nodeArray)
     .force("link", d3.forceLink(edgesArray).id(d => d.id).distance(100))
     .force("charge", d3.forceManyBody().strength(-500))
+    .force("collision", d3.forceCollide().radius(d => {
+      const hw = d.hw || 40;
+      const hh = d.hh || 12;
+      return Math.sqrt(hw * hw + hh * hh) + 4;
+    }))
   /* .force("x", d3.forceX(width / 2).strength(0.05)) */
     .force("y", d3.forceY(d => d.level * levelHeight + 50).strength(1))
 
@@ -410,13 +424,27 @@ function visualizeCallGraph(nodes, edges) {
       .on("drag", dragged)
       .on("end", dragended));
 
-  node.append("circle")
-    .attr("r", 8);
+  node.append("rect")
+    .attr("rx", 4)
+    .attr("ry", 4);
 
   node.append("text")
-    .attr("dx", 12)
-    .attr("dy", 4)
+    .attr("text-anchor", "middle")
+    .attr("dy", "0.35em")
     .text(d => d.id);
+
+  // Measure text and size rectangles to contain labels
+  node.each(function(d) {
+    const textBBox = d3.select(this).select("text").node().getBBox();
+    d.hw = textBBox.width / 2 + 8;
+    d.hh = textBBox.height / 2 + 4;
+  });
+
+  node.select("rect")
+    .attr("width", d => d.hw * 2)
+    .attr("height", d => d.hh * 2)
+    .attr("x", d => -d.hw)
+    .attr("y", d => -d.hh);
 
   // Add tooltip on hover
   node.append("title")
@@ -425,7 +453,12 @@ function visualizeCallGraph(nodes, edges) {
   // Update positions on simulation tick
   simulation.on("tick", () => {
     link.attr("d", d => {
-      return `M${d.source.x},${d.source.y}L${d.target.x},${d.target.y}`;
+      const dx = d.target.x - d.source.x;
+      const dy = d.target.y - d.source.y;
+      if (dx === 0 && dy === 0) return `M${d.source.x},${d.source.y}L${d.target.x},${d.target.y}`;
+      const sp = rectEdgePoint(d.source.x, d.source.y, d.source.hw, d.source.hh, dx, dy);
+      const tp = rectEdgePoint(d.target.x, d.target.y, d.target.hw, d.target.hh, -dx, -dy);
+      return `M${sp.x},${sp.y}L${tp.x},${tp.y}`;
     });
 
     node.attr("transform", d => `translate(${d.x},${d.y})`);
