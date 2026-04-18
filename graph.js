@@ -198,8 +198,9 @@ function getTransitiveCallers(startNode, edges) {
   return callers;
 }
 
+// Clear existing options and replace them with `options`
 function populateSelect(select, options) {
-  select.innerHtml = '';
+  [...select.options].forEach((option) => select.remove(option));
   options.forEach(({text, value}) => select.appendChild(new Option(text, value)));
 }
 
