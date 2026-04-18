@@ -294,7 +294,7 @@ function rankNodes(rootNodes, adjacency) {
   const levels = new Map();
 
   // Perform DFS from each root node (level 0)
-  rootNodes.forEach(node => {
+  rootNodes.forEach((node) => {
     rankNodes2(node.id, 0, levels, adjacency, new Set());
   });
 
@@ -304,8 +304,7 @@ function rankNodes(rootNodes, adjacency) {
 function rankNodes2(id, level, levels, adjacency, visited) {
   if (visited.has(id)) return;
 
-  const newVisited = new Set(visited.values());
-  newVisited.add(id);
+  const newVisited = new Set([...visited.values(), id]);
 
   const currentLevel = levels.get(id);
   if (currentLevel === undefined || currentLevel < level) {
