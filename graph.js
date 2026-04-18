@@ -383,6 +383,9 @@ function visualizeCallGraph(nodes, edges) {
   linkGroup.selectAll("*").remove();
   nodeGroup.selectAll("*").remove();
 
+  // Fix Y locations based on level
+  nodeArray.forEach((node) => node.fy = node.level * levelHeight)
+
   // Create force simulation with hierarchical constraints
   const simulation = d3.forceSimulation(nodeArray)
     .force("link", d3.forceLink(edgesArray).id(d => d.id).distance(100))
@@ -391,26 +394,21 @@ function visualizeCallGraph(nodes, edges) {
       const hw = d.hw || 40;
       const hh = d.hh || 12;
       return Math.sqrt(hw * hw + hh * hh) + 4;
-    }))
-  /* .force("x", d3.forceX(width / 2).strength(0.05)) */
-    .force("y", d3.forceY(d => d.level * levelHeight + 50).strength(1))
+    }));
 
   // Drag functions (must be defined before nodes are created)
   function dragstarted(event, d) {
     if (!event.active) simulation.alphaTarget(0.1).restart();
     d.fx = d.x;
-    d.fy = d.y;
   }
 
   function dragged(event, d) {
     d.fx = event.x;
-    d.fy = event.y;
   }
 
   function dragended(event, d) {
     if (!event.active) simulation.alphaTarget(0);
     d.fx = null;
-    d.fy = null;
   }
 
   // Draw links
