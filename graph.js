@@ -312,8 +312,8 @@ function rankNodes2(id, level, levels, adjacency, visited) {
     levels.set(id, level);
   }
 
-  const neighbors = adjacency.get(id) || [];
-  neighbors.forEach(targetId => rankNodes2(targetId, level + 1, levels, adjacency, newVisited));
+  const children = adjacency.get(id) || [];
+  children.forEach(targetId => rankNodes2(targetId, level + 1, levels, adjacency, newVisited));
 }
 
 // Find where a line from (cx, cy) in direction (dx, dy) intersects a rectangle boundary
