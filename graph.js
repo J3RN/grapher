@@ -273,7 +273,6 @@ function applyFilters() {
   visualizeCallGraph(nodes, edges);
 }
 
-// Clear all filters
 function selectAllModules() {
   for (const option of moduleSelect.options) {
     option.selected = true;
@@ -281,6 +280,7 @@ function selectAllModules() {
   applyFilters();
 }
 
+// Clear all filters
 function clearFilters() {
   initializeFilters(originalNodes);
   sourceSelect.selectedIndex = -1;
